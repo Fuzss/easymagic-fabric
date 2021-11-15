@@ -43,6 +43,10 @@ dependencies {
 //    modImplementation "curse.maven:puzzleslib-<project-id>:<file-id>"
 }
 
+minecraft {
+	refmapName "META-INF/${project.modid}.refmap.json"
+}
+
 processResources {
 	duplicatesStrategy DuplicatesStrategy.INCLUDE
 
@@ -108,10 +112,10 @@ javadoc {
 	options.encoding = "UTF-8"
 }
 
-java {
-	withSourcesJar()
-	withJavadocJar()
-}
+//java {
+//	withSourcesJar()
+//	withJavadocJar()
+//}
 
 ext.jarAttributes = [
 		"Specification-Title"       : project.modid,
@@ -157,7 +161,7 @@ curseforge {
 		addArtifact remapSourcesJar
 		relations {
 			requiredDependency 'fabric-api'
-			requiredDependency 'puzzles-lib'
+			requiredDependency 'puzzles-lib-fabric'
 		}
 	}
 	options {

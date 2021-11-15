@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "compatibilityLevel": "JAVA_16",
   "package": "fuzs.easymagic.mixin",
-  "refmap": "easymagic.refmap.json",
+  "refmap": "META-INF/easymagic.refmap.json",
   "mixins": [
     "EnchantmentTableBlockMixin",
     "accessor.EnchantmentMenuAccessor"
