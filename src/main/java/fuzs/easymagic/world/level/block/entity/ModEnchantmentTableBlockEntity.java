@@ -1,6 +1,5 @@
 package fuzs.easymagic.world.level.block.entity;
 
-import com.google.common.collect.Lists;
 import fuzs.easymagic.EasyMagic;
 import fuzs.easymagic.registry.ModRegistry;
 import fuzs.easymagic.world.inventory.ModEnchantmentMenu;
@@ -25,15 +24,9 @@ import net.minecraft.world.level.block.entity.EnchantmentTableBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.ref.WeakReference;
-import java.util.Iterator;
-import java.util.List;
-import java.util.function.Consumer;
-
 @SuppressWarnings("NullableProblems")
 public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity implements Container, MenuProvider, WorldlyContainer, BlockEntityClientSerializable {
     private final NonNullList<ItemStack> inventory = NonNullList.withSize(2, ItemStack.EMPTY);
-    private final List<WeakReference<ModEnchantmentMenu>> containerReferences = Lists.newArrayList();
     private LockCode code = LockCode.NO_LOCK;
 
     public ModEnchantmentTableBlockEntity(BlockPos pWorldPosition, BlockState pBlockState) {
@@ -83,19 +76,6 @@ public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity 
         super.setChanged();
         if (this.level != null) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
-            this.updateReferences(container -> container.slotsChanged(this));
-        }
-    }
-
-    public void updateReferences(Consumer<ModEnchantmentMenu> action) {
-        Iterator<WeakReference<ModEnchantmentMenu>> iterator = this.containerReferences.iterator();
-        while (iterator.hasNext()) {
-            ModEnchantmentMenu container = iterator.next().get();
-            if (container != null && container.getUser().containerMenu == container) {
-                action.accept(container);
-            } else {
-                iterator.remove();
-            }
         }
     }
 
@@ -202,8 +182,6 @@ public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity 
     }
 
     protected AbstractContainerMenu createMenu(int id, Inventory playerInventory) {
-        ModEnchantmentMenu container = new ModEnchantmentMenu(id, playerInventory, this, ContainerLevelAccess.create(this.level, this.worldPosition));
-        this.containerReferences.add(new WeakReference<>(container));
-        return container;
+        return new ModEnchantmentMenu(id, playerInventory, this, ContainerLevelAccess.create(this.level, this.worldPosition));
     }
 }
