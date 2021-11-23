@@ -134,12 +134,10 @@ public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity 
 
     @Override
     public boolean canPlaceItem(int index, ItemStack stack) {
-        if (EasyMagic.CONFIG.server().itemsStay) {
-            if (index == 1) {
-                return stack.is(Items.LAPIS_LAZULI);
-            } else if (index == 0) {
-                return this.inventory.get(0).isEmpty() && (!EasyMagic.CONFIG.server().filterTable || stack.isEnchantable() || stack.getItem() instanceof BookItem);
-            }
+        if (index == 1) {
+            return stack.is(Items.LAPIS_LAZULI);
+        } else if (index == 0) {
+            return this.inventory.get(0).isEmpty() && (!EasyMagic.CONFIG.server().filterTable || stack.isEnchantable() || stack.getItem() instanceof BookItem);
         }
         return false;
     }
@@ -151,19 +149,13 @@ public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity 
 
     @Override
     public boolean canPlaceItemThroughFace(int index, ItemStack itemStackIn, @Nullable Direction direction) {
-        if (EasyMagic.CONFIG.server().itemsStay) {
-            return this.canPlaceItem(index, itemStackIn);
-        }
-        return false;
+        return this.canPlaceItem(index, itemStackIn);
     }
 
     @Override
     public boolean canTakeItemThroughFace(int index, ItemStack stack, Direction direction) {
-        if (EasyMagic.CONFIG.server().itemsStay) {
-            // only allow extracting of enchantable item
-            return index == 0 && (stack.isEnchanted() || stack.getItem() instanceof EnchantedBookItem);
-        }
-        return false;
+        // only allow extracting of enchantable item
+        return index == 0 && (stack.isEnchanted() || stack.getItem() instanceof EnchantedBookItem);
     }
 
     @Override

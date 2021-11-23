@@ -22,12 +22,11 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 @SuppressWarnings("NullableProblems")
-public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, ContainerListener {
+public class ModEnchantmentMenu extends EnchantmentMenu implements ContainerListener {
     private final Container enchantSlots;
     private final ContainerLevelAccess access;
     private final Player player;
@@ -41,15 +40,10 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
         this.enchantSlots = inventory;
         this.access = worldPosCallable;
         this.player = playerInventory.player;
-        EnchantmentMenuAccessor accessor = (EnchantmentMenuAccessor) this;
-        if (EasyMagic.CONFIG.server().itemsStay) accessor.setEnchantSlots(inventory);
+        ((EnchantmentMenuAccessor) this).setEnchantSlots(inventory);
         this.slots.set(0, PuzzlesUtil.make(new EnchantableSlot(inventory, 0, 15, 47), slot -> slot.index = 0));
         this.slots.set(1, PuzzlesUtil.make(new LapisSlot(inventory, 1, 35, 47), slot -> slot.index = 1));
         this.addSlotListener(this);
-        if (EasyMagic.CONFIG.server().reRollEnchantments) {
-            // set random seed right from the beginning
-            accessor.getEnchantmentSeed().set(playerInventory.player.getRandom().nextInt());
-        }
     }
 
     @Override
@@ -59,24 +53,12 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
 
     @Override
     public void slotsChanged(Container inventory) {
-        this.slotsChangedLocally(inventory);
-//        this.slotsChangedGlobally(menu -> ((ModEnchantmentMenu) menu).enchantSlots, this.access, this.player);
-    }
-
-    @Override
-    public boolean isSameMenu(AbstractContainerMenu other) {
-        return other instanceof ModEnchantmentMenu menu && menu.enchantSlots == this.enchantSlots;
-    }
-
-    @Override
-    public void slotsChangedLocally(Container inventory) {
         if (inventory == this.enchantSlots) {
             ItemStack enchantedItem = inventory.getItem(0);
             if (!enchantedItem.isEmpty() && enchantedItem.isEnchantable()) {
                 this.access.execute((world, pos) -> {
                     int power = EasyMagic.CONFIG.server().maxPower == 0 ? 15 : (this.getEnchantingPower(world, pos) * 15) / EasyMagic.CONFIG.server().maxPower;
-                    EnchantmentMenuAccessor accessor = (EnchantmentMenuAccessor) this;
-                    accessor.getRandom().setSeed(accessor.getEnchantmentSeed().get());
+                    ((EnchantmentMenuAccessor) this).getRandom().setSeed(((EnchantmentMenuAccessor) this).getEnchantmentSeed().get());
                     this.updateLevels(enchantedItem, world, pos, power);
                     // need to run this always as enchanting buttons will otherwise be greyed out
                     this.createClues(enchantedItem);
@@ -91,8 +73,21 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
 
     @Override
     public void slotChanged(AbstractContainerMenu abstractContainerMenu, int i, ItemStack itemStack) {
-        if (abstractContainerMenu == this && i < 2) {
-            this.slotsChangedLocally(this.enchantSlots);
+        // we use this method instead of AbstractContainerMenu::slotsChanged as this automatically triggers when the block entity inventory changes on the server,
+        // e.g. when inserting items using a hopper or from another player,
+        // while slotsChanged is often only triggered on the client when it is sent updated inventory contents
+        if (abstractContainerMenu == this) {
+            // this is only executed on server anyways as slot listeners are only processed there by default, but might as well use the access here
+            this.access.execute((Level, BlockPos) -> {
+                // need to do this before calling AbstractContainerMenu::slotsChanged
+                if (i == 0 && !itemStack.isEmpty() && EasyMagic.CONFIG.server().reRollEnchantments) {
+                    // set a new enchantment seed every time a new item is placed into the enchanting slot
+                    ((EnchantmentMenuAccessor) ModEnchantmentMenu.this).getEnchantmentSeed().set(this.player.getRandom().nextInt());
+                }
+                if (i >= 0 && i < 2) {
+                    this.slotsChanged(this.enchantSlots);
+                }
+            });
         }
     }
 
@@ -187,18 +182,11 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
 
     @Override
     public boolean stillValid(Player playerIn) {
-        if (!EasyMagic.CONFIG.server().itemsStay) {
-            return super.stillValid(playerIn);
-        }
         return this.enchantSlots.stillValid(playerIn);
     }
 
     @Override
     public void removed(Player playerIn) {
-        if (!EasyMagic.CONFIG.server().itemsStay) {
-            super.removed(playerIn);
-            return;
-        }
         // copied from container super method
         if (playerIn instanceof ServerPlayer) {
             ItemStack itemstack = this.getCarried();
@@ -213,10 +201,6 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
         }
     }
 
-    public void reseed() {
-        ((EnchantmentMenuAccessor) ModEnchantmentMenu.this).getEnchantmentSeed().set(this.player.getRandom().nextInt());
-    }
-
     private class EnchantableSlot extends Slot {
         public EnchantableSlot(Container inventoryIn, int index, int xPosition, int yPosition) {
             super(inventoryIn, index, xPosition, yPosition);
@@ -224,7 +208,7 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
 
         @Override
         public boolean mayPlace(ItemStack stack) {
-            if (EasyMagic.CONFIG.server().itemsStay && EasyMagic.CONFIG.server().filterTable) {
+            if (EasyMagic.CONFIG.server().filterTable) {
                 // can't exchange items directly while holding replacement otherwise, this seems to do the trick
                 return stack.isEnchantable() || stack.getItem() instanceof BookItem && !this.hasItem();
             }
@@ -234,27 +218,6 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
         @Override
         public int getMaxStackSize() {
             return 1;
-        }
-
-        @Override
-        @NotNull
-        public void onTake(Player thePlayer, ItemStack stack) {
-            super.onTake(thePlayer, stack);
-            if (EasyMagic.CONFIG.server().reRollEnchantments) {
-                // set a random seed whenever the item is taken out
-                ModEnchantmentMenu.this.reseed();
-//                Container tableInventory = ((EnchantmentMenuAccessor) ModEnchantmentMenu.this).getEnchantSlots();
-//                if (tableInventory instanceof ModEnchantmentTableBlockEntity) {
-//                    ((ModEnchantmentTableBlockEntity) tableInventory).updateReferences(ModEnchantmentMenu::reseed);
-//                }
-            }
-        }
-
-        @Override
-        public void setChanged() {
-            super.setChanged();
-            // would usually do this for the whole inventory, but that one comes from a block entity, so we can't override this method
-//            ModEnchantmentMenu.this.slotsChanged(this.container);
         }
     }
 
@@ -266,13 +229,6 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements GlobalMenu, C
         @Override
         public boolean mayPlace(ItemStack stack) {
             return stack.is(Items.LAPIS_LAZULI);
-        }
-
-        @Override
-        public void setChanged() {
-            super.setChanged();
-            // would usually do this for the whole inventory, but that one comes from a block entity, so we can't override this method
-//            ModEnchantmentMenu.this.slotsChanged(this.container);
         }
     }
 }
