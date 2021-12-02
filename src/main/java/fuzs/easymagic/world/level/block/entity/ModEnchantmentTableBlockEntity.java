@@ -3,12 +3,12 @@ package fuzs.easymagic.world.level.block.entity;
 import fuzs.easymagic.EasyMagic;
 import fuzs.easymagic.registry.ModRegistry;
 import fuzs.easymagic.world.inventory.ModEnchantmentMenu;
-import net.fabricmc.fabric.api.block.entity.BlockEntityClientSerializable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -25,7 +25,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("NullableProblems")
-public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity implements Container, MenuProvider, WorldlyContainer, BlockEntityClientSerializable {
+public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity implements Container, MenuProvider, WorldlyContainer {
     private final NonNullList<ItemStack> inventory = NonNullList.withSize(2, ItemStack.EMPTY);
     private LockCode code = LockCode.NO_LOCK;
 
@@ -42,33 +42,27 @@ public class ModEnchantmentTableBlockEntity extends EnchantmentTableBlockEntity 
     @Override
     public void load(CompoundTag nbt) {
         super.load(nbt);
+        this.code = LockCode.fromTag(nbt);
         this.inventory.clear();
         ContainerHelper.loadAllItems(nbt, this.inventory);
-        this.code = LockCode.fromTag(nbt);
     }
 
     @Override
-    public CompoundTag save(CompoundTag compound) {
-        this.saveMetadataAndItems(compound);
-        this.code.addToTag(compound);
-        return compound;
-    }
-
-    private CompoundTag saveMetadataAndItems(CompoundTag compound) {
-        super.save(compound);
-        ContainerHelper.saveAllItems(compound, this.inventory, true);
-        return compound;
+    protected void saveAdditional(CompoundTag compoundTag) {
+        super.saveAdditional(compoundTag);
+        this.code.addToTag(compoundTag);
+        ContainerHelper.saveAllItems(compoundTag, this.inventory, true);
     }
 
     @Override
-    public CompoundTag toClientTag(CompoundTag tag) {
-        return this.saveMetadataAndItems(tag);
+    @Nullable
+    public ClientboundBlockEntityDataPacket getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override
-    public void fromClientTag(CompoundTag tag) {
-        this.inventory.clear();
-        ContainerHelper.loadAllItems(tag, this.inventory);
+    public CompoundTag getUpdateTag() {
+        return this.saveWithoutMetadata();
     }
 
     @Override
