@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog].
 
+## [v3.2.1-1.18.1] - 2021-12-25
+### Fixed
+- Hopefully fixed rare startup crash due to Forge Config API Port not having been loaded yet
+
 ## [v3.2.0-1.18.1] - 2021-12-15
 ### Added
 - Added a few new config settings for rerolling enchantments at a cost
