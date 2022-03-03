@@ -25,6 +25,8 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EnchantmentTableBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 import java.util.Random;
@@ -164,23 +166,14 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements ContainerList
         EasyMagic.NETWORK.sendTo(new S2CEnchantingDataMessage(this.containerId, firstSlotData, secondSlotData, thirdSlotData), (ServerPlayer) this.player);
     }
 
-    private int getEnchantingPower(Level world, BlockPos pos) {
-        int power = 0;
-        for (int k = -1; k <= 1; ++k) {
-            for (int l = -1; l <= 1; ++l) {
-                if ((k != 0 || l != 0) && isBlockEmpty(world, pos.offset(l, 0, k)) && isBlockEmpty(world, pos.offset(l, 1, k))) {
-                    power += this.getPower(world, pos.offset(l * 2, 0, k * 2));
-                    power += this.getPower(world, pos.offset(l * 2, 1, k * 2));
-                    if (l != 0 && k != 0) {
-                        power += this.getPower(world, pos.offset(l * 2, 0, k));
-                        power += this.getPower(world, pos.offset(l * 2, 1, k));
-                        power += this.getPower(world, pos.offset(l, 0, k * 2));
-                        power += this.getPower(world, pos.offset(l, 1, k * 2));
-                    }
-                }
+    private int getEnchantingPower(Level level, BlockPos pos) {
+        float j = 0;
+        for(BlockPos blockpos : EnchantmentTableBlock.BOOKSHELF_OFFSETS) {
+            if (EnchantmentTableBlock.isValidBookShelf(level, pos, blockpos)) {
+                j += getEnchantPowerBonus(level.getBlockState(pos.offset(blockpos)), level, pos.offset(blockpos));
             }
         }
-        return power;
+        return (int) j;
     }
 
     public static boolean isBlockEmpty(Level world, BlockPos pos) {
@@ -190,8 +183,8 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements ContainerList
         return world.isEmptyBlock(pos);
     }
 
-    private float getPower(Level world, BlockPos pos) {
-        return world.getBlockState(pos).is(Blocks.BOOKSHELF) ? 1.0F : 0.0F;
+    public static float getEnchantPowerBonus(BlockState state, Level level, BlockPos pos) {
+        return state.is(Blocks.BOOKSHELF) ? 1.0F : 0.0F;
     }
 
     @Override
@@ -247,7 +240,7 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements ContainerList
         }
     }
 
-    private class EnchantableSlot extends Slot {
+    private static class EnchantableSlot extends Slot {
         public EnchantableSlot(Container inventoryIn, int index, int xPosition, int yPosition) {
             super(inventoryIn, index, xPosition, yPosition);
         }
@@ -267,7 +260,7 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements ContainerList
         }
     }
 
-    private class LapisSlot extends Slot {
+    private static class LapisSlot extends Slot {
         public LapisSlot(Container inventoryIn, int index, int xPosition, int yPosition) {
             super(inventoryIn, index, xPosition, yPosition);
         }

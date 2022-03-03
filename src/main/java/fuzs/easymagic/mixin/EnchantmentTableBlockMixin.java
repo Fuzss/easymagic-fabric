@@ -53,9 +53,9 @@ public abstract class EnchantmentTableBlockMixin extends BaseEntityBlock {
         }
     }
 
-    @Redirect(method = "animateTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;isEmptyBlock(Lnet/minecraft/core/BlockPos;)Z"))
-    private boolean isBlockEmpty(Level world, BlockPos pos) {
-        return ModEnchantmentMenu.isBlockEmpty(world, pos);
+    @Redirect(method = "isValidBookShelf", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;isEmptyBlock(Lnet/minecraft/core/BlockPos;)Z"))
+    private static boolean isEmptyBlock(Level level, BlockPos pos) {
+        return ModEnchantmentMenu.isBlockEmpty(level, pos);
     }
 
     @Override
