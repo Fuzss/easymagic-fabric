@@ -28,6 +28,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EnchantmentTableBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
+import net.fabricmc.fabric.api.tag.convention.v1.ConventionalBlockTags;
+
 import java.util.List;
 import java.util.Random;
 
@@ -184,7 +186,7 @@ public class ModEnchantmentMenu extends EnchantmentMenu implements ContainerList
     }
 
     public static float getEnchantPowerBonus(BlockState state, Level level, BlockPos pos) {
-        return state.is(Blocks.BOOKSHELF) ? 1.0F : 0.0F;
+        return state.is(ConventionalBlockTags.BOOKSHELVES) ? 1.0F : 0.0F;
     }
 
     @Override
